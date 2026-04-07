@@ -33,11 +33,40 @@ function EmbedPaymentLinkRoute() {
   return <PaymentLinkPage embed />;
 }
 
+/** `/embed/pay` with no id falls through to `*` → home; show this instead. */
+function EmbedPayMissingId() {
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
+        textAlign: 'center',
+        fontFamily: 'system-ui, sans-serif',
+      }}
+    >
+      <div style={{ maxWidth: 480 }}>
+        <h1 style={{ fontSize: '1.25rem', marginBottom: 12 }}>Incomplete payment link</h1>
+        <p style={{ color: '#555', marginBottom: 8 }}>
+          Add your <strong>payment ID</strong> after <code>/embed/pay/</code> (from SMS, email, or checkout).
+        </p>
+        <p style={{ color: '#555', fontSize: 14 }}>
+          Example:{' '}
+          <code style={{ wordBreak: 'break-all' }}>…/embed/pay/ABC12XY9</code>
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   return (
     <>
       <AuthInitializer />
       <Routes>
+        <Route path="embed/pay" element={<EmbedPayMissingId />} />
         <Route path="embed/pay/:paymentId" element={<EmbedPaymentLinkRoute />} />
         <Route element={<CustomerChrome />}>
           <Route index element={<HomePage />} />
