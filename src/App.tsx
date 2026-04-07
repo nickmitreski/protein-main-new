@@ -28,11 +28,17 @@ import { AnalyticsPage } from './pages/admin/AnalyticsPage';
 import { SettingsPage } from './pages/admin/SettingsPage';
 import { PaymentLinksPage } from './pages/admin/PaymentLinksPage';
 
+/** Payment link UI without Header/Footer — for iframe embed on partner storefronts. */
+function EmbedPaymentLinkRoute() {
+  return <PaymentLinkPage embed />;
+}
+
 function App() {
   return (
     <>
       <AuthInitializer />
       <Routes>
+        <Route path="embed/pay/:paymentId" element={<EmbedPaymentLinkRoute />} />
         <Route element={<CustomerChrome />}>
           <Route index element={<HomePage />} />
           <Route path="shop" element={<ShopPage />} />

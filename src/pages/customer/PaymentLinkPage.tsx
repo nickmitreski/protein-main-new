@@ -5,6 +5,7 @@ import { Input } from '../../components/ui/Input';
 import { SquarePaymentForm } from '../../components/customer/SquarePaymentForm';
 import { colors, spacing, typography, borderRadius } from '../../design-system';
 import { supabase, getBrowserSupabaseAnonKey } from '../../lib/supabase';
+import { EMBED_MSG, useEmbedMessaging } from '../../lib/embedMessaging';
 import { Lock, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -29,9 +30,26 @@ function formatMoney(amount: number, currency: string): string {
   }
 }
 
-export function PaymentLinkPage() {
+/** Checkout callers may send `customer_first_name` / `customer_last_name` in metadata. */
+function customerDisplayName(metadata?: Record<string, unknown>): string | null {
+  if (!metadata) return null;
+  const first =
+    typeof metadata.customer_first_name === 'string' ? metadata.customer_first_name.trim() : '';
+  const last =
+    typeof metadata.customer_last_name === 'string' ? metadata.customer_last_name.trim() : '';
+  const full = [first, last].filter(Boolean).join(' ');
+  return full || null;
+}
+
+type PaymentLinkPageProps = {
+  /** No site chrome; postMessage to parent; use with partner iframe + `VITE_EMBED_PARENT_ORIGINS`. */
+  embed?: boolean;
+};
+
+export function PaymentLinkPage({ embed = false }: PaymentLinkPageProps) {
   const { paymentId } = useParams<{ paymentId: string }>();
   const navigate = useNavigate();
+  const { postToParent } = useEmbedMessaging(embed);
 
   const [loading, setLoading] = useState(true);
   const [paymentLink, setPaymentLink] = useState<PaymentLinkData | null>(null);
@@ -51,6 +69,43 @@ export function PaymentLinkPage() {
 
   // Time remaining
   const [timeRemaining, setTimeRemaining] = useState<string>('');
+
+  // Neutral tab title for white-label pay pages (avoid storefront name from index.html).
+  useEffect(() => {
+    const title =
+      (import.meta.env.VITE_PAY_PAGE_TITLE as string | undefined)?.trim() || 'Secure payment';
+    const prev = document.title;
+    document.title = title;
+    return () => {
+      document.title = prev;
+    };
+  }, []);
+
+  const trustDisclosure = (import.meta.env.VITE_PAY_TRUST_DISCLOSURE as string | undefined)?.trim();
+
+  function handleDismissToPartner() {
+    if (embed) {
+      postToParent(EMBED_MSG.ERROR, {
+        reason: 'dismiss',
+        payment_id: paymentId ?? null,
+      });
+      return;
+    }
+    navigate('/');
+  }
+
+  function handleSuccessDone() {
+    if (embed && paymentLink) {
+      postToParent(EMBED_MSG.SUCCESS, {
+        payment_id: paymentLink.payment_id,
+        reference: paymentLink.reference ?? null,
+        amount: paymentLink.amount,
+        currency: paymentLink.currency,
+      });
+      return;
+    }
+    navigate('/');
+  }
 
   // Fetch payment link details
   useEffect(() => {
@@ -233,10 +288,20 @@ export function PaymentLinkPage() {
     }
   }
 
+  const outerMinHeight = embed ? '100%' : '100vh';
+
   // Loading state
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div
+        style={{
+          minHeight: outerMinHeight,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxSizing: 'border-box',
+        }}
+      >
         <p style={{ fontSize: typography.fontSize.lg, color: colors.text.secondary }}>Loading payment...</p>
       </div>
     );
@@ -245,14 +310,23 @@ export function PaymentLinkPage() {
   // Error state
   if (error) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: spacing.md }}>
+      <div
+        style={{
+          minHeight: outerMinHeight,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: spacing.md,
+          boxSizing: 'border-box',
+        }}
+      >
         <div style={{ maxWidth: '500px', width: '100%', textAlign: 'center' }}>
           <AlertCircle size={64} style={{ color: colors.error.main, margin: '0 auto', marginBottom: spacing.lg }} />
           <h1 style={{ fontSize: typography.fontSize['3xl'], fontWeight: typography.fontWeight.bold, marginBottom: spacing.md }}>
             {error}
           </h1>
-          <Button variant="primary" onClick={() => navigate('/')}>
-            Return to Home
+          <Button variant="primary" onClick={handleDismissToPartner}>
+            {embed ? 'Close' : 'Return to Home'}
           </Button>
         </div>
       </div>
@@ -262,7 +336,16 @@ export function PaymentLinkPage() {
   // Payment success state
   if (paymentSuccess && paymentLink) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: spacing.md }}>
+      <div
+        style={{
+          minHeight: outerMinHeight,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: spacing.md,
+          boxSizing: 'border-box',
+        }}
+      >
         <div style={{ maxWidth: '600px', width: '100%', textAlign: 'center' }}>
           <CheckCircle size={64} style={{ color: colors.success.main, margin: '0 auto', marginBottom: spacing.lg }} />
           <h1 style={{ fontSize: typography.fontSize['3xl'], fontWeight: typography.fontWeight.bold, marginBottom: spacing.md }}>
@@ -283,8 +366,19 @@ export function PaymentLinkPage() {
               Payment ID: <strong style={{ color: colors.text.primary }}>{paymentLink.payment_id}</strong>
             </p>
           </div>
-          <Button variant="primary" onClick={() => navigate('/')}>
-            Return to Home
+          {embed && trustDisclosure ? (
+            <p
+              style={{
+                fontSize: typography.fontSize.xs,
+                color: colors.text.tertiary,
+                marginBottom: spacing.md,
+              }}
+            >
+              {trustDisclosure}
+            </p>
+          ) : null}
+          <Button variant="primary" onClick={handleSuccessDone}>
+            {embed ? 'Done' : 'Return to Home'}
           </Button>
         </div>
       </div>
@@ -293,9 +387,18 @@ export function PaymentLinkPage() {
 
   if (!paymentLink) return null;
 
+  const payerName = customerDisplayName(paymentLink.metadata);
+
   // Payment form
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: colors.background.secondary, padding: spacing.lg }}>
+    <div
+      style={{
+        minHeight: outerMinHeight,
+        backgroundColor: colors.background.secondary,
+        padding: spacing.lg,
+        boxSizing: 'border-box',
+      }}
+    >
       <div style={{ maxWidth: '600px', margin: '0 auto' }}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: spacing.xl }}>
@@ -304,6 +407,7 @@ export function PaymentLinkPage() {
           </h1>
           <p style={{ fontSize: typography.fontSize.base, color: colors.text.secondary }}>
             Complete your payment securely using the code provided
+            {embed ? ' in this window.' : ''}
           </p>
         </div>
 
@@ -323,6 +427,14 @@ export function PaymentLinkPage() {
           <p style={{ fontSize: typography.fontSize['4xl'], fontWeight: typography.fontWeight.bold, color: colors.primary.main }}>
             {formatMoney(paymentLink.amount, paymentLink.currency)}
           </p>
+          {payerName ? (
+            <p style={{ fontSize: typography.fontSize.sm, color: colors.text.secondary, marginTop: spacing.sm }}>
+              Paying as{' '}
+              <span style={{ fontWeight: typography.fontWeight.semibold, color: colors.text.primary }}>
+                {payerName}
+              </span>
+            </p>
+          ) : null}
           {paymentLink.reference ? (
             <p style={{ fontSize: typography.fontSize.xs, color: colors.text.secondary, marginTop: spacing.sm }}>
               Reference: <span style={{ fontWeight: typography.fontWeight.semibold }}>{paymentLink.reference}</span>
@@ -435,7 +547,20 @@ export function PaymentLinkPage() {
           )}
         </div>
 
-        {/* Security Notice */}
+        {/* Trust / security */}
+        {embed && trustDisclosure ? (
+          <p
+            style={{
+              fontSize: typography.fontSize.xs,
+              color: colors.text.secondary,
+              textAlign: 'center',
+              marginTop: spacing.md,
+              lineHeight: typography.lineHeight.relaxed,
+            }}
+          >
+            {trustDisclosure}
+          </p>
+        ) : null}
         <p
           style={{
             fontSize: typography.fontSize.xs,
