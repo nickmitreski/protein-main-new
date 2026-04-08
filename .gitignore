@@ -21,3 +21,16 @@ dist-ssr
 *.sln
 *.sw?
 .env
+.env.local
+.env.*.local
+!.env.example
+
+# Laminin storefront: deploy from github.com/nickmitreski/LAMININ-PEPTIDES (scripts/sync-laminin-to-standalone-repo.sh). Omit here so nested .git is never a gitlink.
+public/laminin-site/
+
+# Bundled reference projects under other/ — keep only product PNGs for /other/supp-images
+other/**
+!other/supp-images/
+!other/supp-images/**
+.vercel
+.env*.local

@@ -80,9 +80,10 @@ export async function processSquarePayment(request: SquarePaymentRequest): Promi
 /**
  * Generate idempotency key for Square payment
  * Ensures payment is not processed multiple times
+ * Uses crypto.randomUUID() for cryptographically secure uniqueness
  */
 export function generateIdempotencyKey(orderId: string): string {
-  return `${orderId}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+  return `${orderId}-${crypto.randomUUID()}`;
 }
 
 /**

@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Zap } from 'lucide-react';
 import type { Product } from '../../types';
 import { colors, components, spacing, typography } from '../../utils/design-system';
 import { ProductBadge } from '../product/ProductBadge';
+import { ProductStatusBadge } from './ProductStatusBadge';
+import { getProductStatus, isProductPurchasable } from '../../utils/productStatus';
 import StarRating from '../StarRating';
 
 interface CatalogProductCardProps {
@@ -16,11 +18,19 @@ export function CatalogProductCard({ product, onAddToCart }: CatalogProductCardP
     ? Math.round(((product.compare_at_price! - product.price) / product.compare_at_price!) * 100)
     : 0;
 
-  const isLowStock = product.stock_quantity > 0 && product.stock_quantity < 10;
-  const isOutOfStock = product.stock_quantity === 0;
+  const productStatus = getProductStatus(product.sku || product.id);
+  const canPurchase = isProductPurchasable(productStatus);
+  const isLowStock = canPurchase && product.stock_quantity > 0 && product.stock_quantity < 10;
 
   return (
-    <div className={`group ${components.card} flex flex-col relative h-full`}>
+    <div className={`group ${components.card} flex flex-col relative h-full overflow-hidden transition-all duration-300 hover:shadow-2xl`}>
+      {/* Web3-style gradient overlay on hover */}
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none z-0"
+        style={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+        }}
+      />
+
       {/* Badges */}
       {product.badge && (
         <div className="absolute top-3 left-3 z-10">
@@ -29,9 +39,9 @@ export function CatalogProductCard({ product, onAddToCart }: CatalogProductCardP
       )}
 
       {/* Discount Badge */}
-      {hasDiscount && (
+      {hasDiscount && canPurchase && (
         <div
-          className="absolute top-3 right-3 z-10 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg"
+          className="absolute top-3 right-3 z-10 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg animate-pulse"
           style={{ backgroundColor: colors.error, color: colors.white }}
         >
           -{discountPercent}%
@@ -41,28 +51,38 @@ export function CatalogProductCard({ product, onAddToCart }: CatalogProductCardP
       {/* Stock Warning */}
       {isLowStock && (
         <div className="absolute top-14 right-3 z-10 px-2.5 py-1 rounded-full text-xs font-semibold bg-white border border-gray-200 shadow-sm">
-          <span style={{ color: colors.warning }}>Only {product.stock_quantity} left!</span>
-        </div>
-      )}
-
-      {/* Out of Stock Overlay */}
-      {isOutOfStock && (
-        <div className="absolute inset-0 z-10 bg-black bg-opacity-60 flex items-center justify-center rounded-t-lg">
-          <div className="bg-white px-6 py-3 rounded-lg shadow-xl">
-            <span className="font-bold text-lg" style={{ color: colors.error }}>
-              OUT OF STOCK
-            </span>
+          <div className="flex items-center gap-1">
+            <Zap size={12} style={{ color: colors.warning }} />
+            <span style={{ color: colors.warning }}>Only {product.stock_quantity} left!</span>
           </div>
         </div>
       )}
 
-      {/* Product Image */}
-      <Link to={`/product/${product.id}`} className="block">
-        <div className="aspect-square overflow-hidden rounded-t-lg" style={{ backgroundColor: colors.gray100 }}>
+      {/* Status Overlay (Sold Out / Coming Soon) */}
+      {!canPurchase && (
+        <div className="absolute inset-0 z-10 bg-black bg-opacity-70 flex items-center justify-center rounded-t-lg backdrop-blur-sm">
+          <ProductStatusBadge status={productStatus} className="shadow-2xl transform scale-125" />
+        </div>
+      )}
+
+      {/* Product Image with gradient background */}
+      <Link to={`/product/${product.id}`} className="block relative">
+        <div className="aspect-square overflow-hidden rounded-t-lg relative"
+          style={{
+            background: 'linear-gradient(135deg, #667eea15 0%, #764ba215 50%, #f093fb15 100%)',
+          }}
+        >
+          {/* Animated gradient border effect on hover */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+            style={{
+              background: 'linear-gradient(135deg, #667eea30 0%, #764ba230 100%)',
+              filter: 'blur(20px)',
+            }}
+          />
           <img
             src={product.image}
             alt={product.name}
-            className={`${components.image} ${components.imageHover}`}
+            className={`${components.image} ${components.imageHover} relative z-10`}
             loading="lazy"
           />
         </div>
@@ -140,12 +160,13 @@ export function CatalogProductCard({ product, onAddToCart }: CatalogProductCardP
           <button
             type="button"
             onClick={() => onAddToCart(product)}
-            disabled={isOutOfStock}
-            className={`${components.buttonPrimary} px-4 py-2.5 text-sm font-semibold rounded-lg flex items-center gap-2 transition-all duration-300 hover:gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none`}
+            disabled={!canPurchase}
+            className={`${components.buttonPrimary} px-4 py-2.5 text-sm font-semibold rounded-lg flex items-center gap-2 transition-all duration-300 hover:gap-3 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:gap-2`}
             aria-label={`Add ${product.name} to cart`}
+            title={!canPurchase ? `This product is ${productStatus === 'sold-out' ? 'sold out' : 'coming soon'}` : undefined}
           >
             <ShoppingCart className="w-4 h-4" />
-            <span className="hidden sm:inline">Add</span>
+            <span className="hidden sm:inline">{canPurchase ? 'Add' : productStatus === 'sold-out' ? 'Sold Out' : 'Soon'}</span>
           </button>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import * as bcrypt from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
+import bcrypt from "npm:bcryptjs@2.4.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -61,6 +61,8 @@ Deno.serve(async (req: Request) => {
       metadata?: Record<string, unknown>;
       reference?: string;
       external_reference?: string;
+      /** When true, `payment_url` uses `/embed/pay/:id` (iframe-friendly, no site chrome). */
+      embed?: boolean;
     };
 
     const {
@@ -69,7 +71,13 @@ Deno.serve(async (req: Request) => {
       currency = "USD",
       expirationMinutes = 15,
       metadata: rawMetadata = {},
+      embed: embedBody = false,
     } = body;
+
+    const embed =
+      embedBody === true ||
+      rawMetadata.embed === true ||
+      rawMetadata.payment_ui === "embed";
 
     const metaRef =
       typeof rawMetadata.reference === "string" ? rawMetadata.reference.trim() : "";
@@ -78,6 +86,7 @@ Deno.serve(async (req: Request) => {
 
     const metadata = { ...rawMetadata };
     if (reference) metadata.reference = reference;
+    if (embed) metadata.embed = true;
 
     const sourceIsLamin =
       typeof rawMetadata?.source === "string" && rawMetadata.source.toLowerCase() === "lamin";
@@ -126,6 +135,9 @@ Deno.serve(async (req: Request) => {
     // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    const paymentPath = (paymentId: string) =>
+      embed ? `/embed/pay/${paymentId}` : `/pay/${paymentId}`;
+
     // Idempotency: same LAMIN order (reference) + pending + not expired → return existing URL
     if (reference) {
       const { data: existing } = await supabase
@@ -143,7 +155,7 @@ Deno.serve(async (req: Request) => {
           );
         }
         const baseUrlEarly = req.headers.get("origin") || Deno.env.get("FRONTEND_URL") || "http://localhost:5173";
-        const paymentUrlEarly = `${baseUrlEarly}/pay/${existing.payment_id}`;
+        const paymentUrlEarly = `${baseUrlEarly.replace(/\/$/, "")}${paymentPath(existing.payment_id)}`;
         return new Response(
           JSON.stringify({
             payment_url: paymentUrlEarly,
@@ -155,7 +167,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Hash the code (using bcrypt for secure one-way hashing)
-    const codeHash = await bcrypt.hash(code.trim());
+    const codeHash = bcrypt.hashSync(code.trim(), 10);
 
     let paymentId = "";
     let lastError: { message: string; code?: string } | null = null;
@@ -196,7 +208,7 @@ Deno.serve(async (req: Request) => {
 
     // Generate payment URL
     const baseUrl = req.headers.get("origin") || Deno.env.get("FRONTEND_URL") || "http://localhost:5173";
-    const paymentUrl = `${baseUrl}/pay/${paymentId}`;
+    const paymentUrl = `${baseUrl.replace(/\/$/, "")}${paymentPath(paymentId)}`;
 
     return new Response(
       JSON.stringify({

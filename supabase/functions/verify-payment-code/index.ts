@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import * as bcrypt from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
+import bcrypt from "npm:bcryptjs@2.4.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -85,7 +85,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Verify code against hash
-    const isValid = await bcrypt.compare(code, paymentLink.code_hash);
+    const isValid = bcrypt.compareSync(code.trim(), paymentLink.code_hash as string);
 
     if (!isValid) {
       return new Response(

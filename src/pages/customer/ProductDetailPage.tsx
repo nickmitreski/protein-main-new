@@ -6,10 +6,11 @@ import { useReviews, useCreateReview } from '../../hooks/useReviews';
 import { useCartStore } from '../../store/cartStore';
 import { isSupabaseConfigured } from '../../lib/supabase';
 import { Button } from '../../components/ui/Button';
+import { IngredientsModal } from '../../components/customer/IngredientsModal';
 import { colors, spacing, typography } from '../../utils/design-system';
 import StarRating from '../../components/StarRating';
 import { CatalogProductCard } from '../../components/customer/CatalogProductCard';
-import { Check, ShieldCheck, Truck, Zap, Star } from 'lucide-react';
+import { Check, ShieldCheck, Truck, Zap, Star, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 type Tab = 'overview' | 'nutrition' | 'ingredients' | 'usage' | 'reviews';
@@ -30,6 +31,7 @@ export function ProductDetailPage() {
   const [reviewerName, setReviewerName] = useState('');
   const [reviewerEmail, setReviewerEmail] = useState('');
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [ingredientsModalOpen, setIngredientsModalOpen] = useState(false);
 
   const relatedProducts = allProducts.filter((p) => p.id !== product?.id).slice(0, 4);
 
@@ -70,6 +72,7 @@ export function ProductDetailPage() {
   const ingredients = product.ingredients;
   const usageInstructions = product.usage_instructions;
   const warnings = product.warnings;
+  const allergens = (product as any).allergens as string[] | undefined;
 
   const allTabs: { id: Tab; label: string; show: boolean }[] = [
     { id: 'overview', label: 'Overview', show: true },
@@ -260,6 +263,19 @@ export function ProductDetailPage() {
           <Button variant="outline" fullWidth onClick={() => navigate('/cart')}>
             View Cart
           </Button>
+
+          {/* Ingredients Button */}
+          {(ingredients?.length || allergens?.length || warnings) && (
+            <button
+              type="button"
+              onClick={() => setIngredientsModalOpen(true)}
+              className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-3 border rounded-lg hover:bg-gray-50 transition-colors"
+              style={{ borderColor: colors.lightGrey, color: colors.black }}
+            >
+              <Info className="w-4 h-4" />
+              <span className="text-sm font-semibold">View Full Ingredients & Safety Info</span>
+            </button>
+          )}
 
           <div className="grid grid-cols-3 gap-4 mt-8 pt-8 border-t" style={{ borderColor: colors.lightGrey }}>
             {[
@@ -601,6 +617,16 @@ export function ProductDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Ingredients Modal */}
+      <IngredientsModal
+        isOpen={ingredientsModalOpen}
+        onClose={() => setIngredientsModalOpen(false)}
+        productName={product.name}
+        ingredients={ingredients || undefined}
+        allergens={allergens}
+        warnings={warnings || undefined}
+      />
     </div>
   );
 }

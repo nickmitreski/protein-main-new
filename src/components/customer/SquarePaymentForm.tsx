@@ -152,10 +152,15 @@ export function SquarePaymentForm({ onTokenize, onError, isLoading, disabled = f
         <AlertCircle size={20} style={{ color: colors.error.main, flexShrink: 0, marginTop: '2px' }} />
         <div>
           <p style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.error.dark, marginBottom: spacing[1] }}>
-            Payment Configuration Error
+            Card Payment Not Available
+          </p>
+          <p style={{ fontSize: typography.fontSize.sm, color: colors.error.dark, marginBottom: spacing[2] }}>
+            {sdkError}
           </p>
           <p style={{ fontSize: typography.fontSize.sm, color: colors.error.dark }}>
-            {sdkError}
+            Set <span style={{ fontFamily: 'monospace' }}>VITE_SQUARE_APPLICATION_ID</span> and{' '}
+            <span style={{ fontFamily: 'monospace' }}>VITE_SQUARE_LOCATION_ID</span> to enable card payments.
+            Code verification still works for testing the payment flow.
           </p>
         </div>
       </div>

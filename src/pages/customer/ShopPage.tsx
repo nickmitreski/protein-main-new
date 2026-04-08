@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { CatalogProductCard } from '../../components/customer/CatalogProductCard';
+import { useSearchParams } from 'react-router-dom';
+import { SimpleProductCard } from '../../components/customer/SimpleProductCard';
+import { ProductModal } from '../../components/customer/ProductModal';
 import { useProducts } from '../../hooks/useProducts';
-import { useCartStore } from '../../store/cartStore';
 import { colors, spacing, typography } from '../../utils/design-system';
 import { PRODUCT_CATEGORIES, SORT_OPTIONS } from '../../constants';
-import type { ProductFilters } from '../../types';
+import type { ProductFilters, Product } from '../../types';
 import { Select } from '../../components/ui/Select';
 import { SlidersHorizontal, X } from 'lucide-react';
-import toast from 'react-hot-toast';
 
 export function ShopPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -18,11 +17,19 @@ export function ShopPage() {
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   useEffect(() => {
     setCategory(searchParams.get('category') ?? '');
     setSearch(searchParams.get('search') ?? '');
   }, [searchParams]);
+
+  // Scroll to top when modal opens/closes
+  useEffect(() => {
+    if (selectedProduct) {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [selectedProduct]);
 
   const filters = useMemo<ProductFilters>(
     () => ({
@@ -36,12 +43,6 @@ export function ShopPage() {
   );
 
   const { data: products = [], isLoading } = useProducts(filters);
-  const addItem = useCartStore((s) => s.addItem);
-
-  const handleAdd = (product: Parameters<typeof addItem>[0]) => {
-    addItem(product, 1);
-    toast.success('Added to cart');
-  };
 
   const handleCategoryChange = (v: string) => {
     setCategory(v);
@@ -68,237 +69,235 @@ export function ShopPage() {
   };
 
   return (
-    <div className={spacing.container + ' py-16'}>
-      <header className="mb-10">
-        <p className={typography.caption} style={{ color: colors.gray500 }}>
-          Catalog
-        </p>
-        <h1 className={`${typography.h2} mt-2`} style={{ color: colors.black }}>
-          Shop CoreForge
-        </h1>
-        <p className={`${typography.bodySmall} mt-3 max-w-2xl`} style={{ color: colors.gray500 }}>
-          {products.length} product{products.length !== 1 ? 's' : ''} available
-          {category ? ` in ${category}` : ''}
-          {search ? ` matching "${search}"` : ''}. Star ratings should reflect genuine customer feedback—see each
-          product’s reviews. Supplements are not intended to diagnose, treat, cure, or prevent disease.{' '}
-          <Link to="/supplement-disclaimer" className="underline font-medium" style={{ color: colors.black }}>
-            Disclaimer
-          </Link>
-        </p>
-      </header>
+    <>
+      <div className={spacing.container + ' py-16'}>
+        <header className="mb-10">
+          <p className={typography.caption} style={{ color: colors.gray500 }}>
+            Catalog
+          </p>
+          <h1 className={`${typography.h2} mt-2`} style={{ color: colors.black }}>
+            Shop CoreForge
+          </h1>
+          <p className={`${typography.bodySmall} mt-3 max-w-2xl`} style={{ color: colors.gray500 }}>
+            {products.length} product{products.length !== 1 ? 's' : ''} available
+            {category ? ` in ${category}` : ''}
+            {search ? ` matching "${search}"` : ''}
+          </p>
+        </header>
 
-      <div className="flex flex-col gap-6 mb-10">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex-1 relative">
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={search}
-              onChange={(e) => {
-                const v = e.target.value;
-                setSearch(v);
-                setSearchParams(
-                  (prev) => {
-                    const next = new URLSearchParams(prev);
-                    if (v.trim()) next.set('search', v.trim());
-                    else next.delete('search');
-                    return next;
-                  },
-                  { replace: true }
-                );
+        <div className="flex flex-col gap-6 mb-10">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={search}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setSearch(v);
+                  setSearchParams(
+                    (prev) => {
+                      const next = new URLSearchParams(prev);
+                      if (v.trim()) next.set('search', v.trim());
+                      else next.delete('search');
+                      return next;
+                    },
+                    { replace: true }
+                  );
+                }}
+                className="w-full border px-4 py-3 text-sm pr-10 rounded-lg"
+                style={{ borderColor: colors.lightGrey, color: colors.black, backgroundColor: 'white' }}
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch('');
+                    setSearchParams((prev) => {
+                      const next = new URLSearchParams(prev);
+                      next.delete('search');
+                      return next;
+                    }, { replace: true });
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                >
+                  <X size={14} style={{ color: colors.gray500 }} />
+                </button>
+              )}
+            </div>
+            <div className="w-full sm:w-52">
+              <Select
+                label=""
+                value={sortBy ?? 'newest'}
+                onChange={(e) => setSortBy(e.target.value as ProductFilters['sortBy'])}
+                options={SORT_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setFiltersOpen(!filtersOpen)}
+              className="flex items-center gap-2 px-4 py-3 border text-sm font-medium rounded-lg"
+              style={{
+                borderColor: filtersOpen ? colors.black : colors.lightGrey,
+                color: colors.black,
+                backgroundColor: filtersOpen ? colors.lightGrey : 'white',
               }}
-              className="w-full border px-4 py-3 text-sm pr-10"
-              style={{ borderColor: colors.lightGrey, color: colors.black, backgroundColor: 'white' }}
-            />
-            {search && (
+            >
+              <SlidersHorizontal size={16} />
+              Filters
+              {activeFilterCount > 0 && (
+                <span
+                  className="ml-1 px-1.5 py-0.5 text-xs font-bold text-white rounded-full"
+                  style={{ backgroundColor: colors.red }}
+                >
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+            {activeFilterCount > 0 && (
               <button
                 type="button"
-                onClick={() => {
-                  setSearch('');
-                  setSearchParams((prev) => {
-                    const next = new URLSearchParams(prev);
-                    next.delete('search');
-                    return next;
-                  }, { replace: true });
-                }}
-                className="absolute right-3 top-1/2 -translate-y-1/2"
+                onClick={clearFilters}
+                className="flex items-center gap-1 px-3 py-3 text-xs uppercase tracking-wider hover:opacity-70"
+                style={{ color: colors.red }}
               >
-                <X size={14} style={{ color: colors.gray500 }} />
+                <X size={12} />
+                Clear all
               </button>
             )}
           </div>
-          <div className="w-full sm:w-52">
-            <Select
-              label=""
-              value={sortBy ?? 'newest'}
-              onChange={(e) => setSortBy(e.target.value as ProductFilters['sortBy'])}
-              options={SORT_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-            />
-          </div>
-          <button
-            type="button"
-            onClick={() => setFiltersOpen(!filtersOpen)}
-            className="flex items-center gap-2 px-4 py-3 border text-sm font-medium"
-            style={{
-              borderColor: filtersOpen ? colors.black : colors.lightGrey,
-              color: colors.black,
-              backgroundColor: filtersOpen ? colors.lightGrey : 'white',
-            }}
-          >
-            <SlidersHorizontal size={16} />
-            Filters
-            {activeFilterCount > 0 && (
-              <span
-                className="ml-1 px-1.5 py-0.5 text-xs font-bold text-white rounded-full"
-                style={{ backgroundColor: colors.red }}
-              >
-                {activeFilterCount}
-              </span>
-            )}
-          </button>
-          {activeFilterCount > 0 && (
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="flex items-center gap-1 px-3 py-3 text-xs uppercase tracking-wider hover:opacity-70"
-              style={{ color: colors.red }}
-            >
-              <X size={12} />
-              Clear all
-            </button>
-          )}
-        </div>
 
-        {filtersOpen && (
-          <div
-            className="border p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-            style={{ borderColor: colors.lightGrey, backgroundColor: colors.gray50 }}
-          >
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: colors.gray500 }}>
-                Category
-              </p>
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    checked={!category}
-                    onChange={() => handleCategoryChange('')}
-                    className="accent-red-600"
-                  />
-                  <span className="text-sm" style={{ color: colors.black }}>All Products</span>
-                </label>
-                {PRODUCT_CATEGORIES.map((c) => (
-                  <label key={c.id} className="flex items-center gap-2 cursor-pointer">
+          {filtersOpen && (
+            <div
+              className="border p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 rounded-lg"
+              style={{ borderColor: colors.lightGrey, backgroundColor: colors.gray50 }}
+            >
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: colors.gray500 }}>
+                  Category
+                </p>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="radio"
-                      checked={category === c.id}
-                      onChange={() => handleCategoryChange(c.id)}
+                      checked={!category}
+                      onChange={() => handleCategoryChange('')}
                       className="accent-red-600"
                     />
-                    <span className="text-sm" style={{ color: colors.black }}>{c.name}</span>
+                    <span className="text-sm" style={{ color: colors.black }}>All Products</span>
                   </label>
-                ))}
+                  {PRODUCT_CATEGORIES.map((c) => (
+                    <label key={c.id} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        checked={category === c.id}
+                        onChange={() => handleCategoryChange(c.id)}
+                        className="accent-red-600"
+                      />
+                      <span className="text-sm" style={{ color: colors.black }}>{c.name}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: colors.gray500 }}>
-                Price Range
-              </p>
-              <div className="flex gap-2 items-center">
-                <input
-                  type="number"
-                  placeholder="Min"
-                  value={minPrice}
-                  onChange={(e) => setMinPrice(e.target.value)}
-                  className="w-full border px-3 py-2 text-sm"
-                  style={{ borderColor: colors.lightGrey }}
-                  min="0"
-                />
-                <span style={{ color: colors.gray500 }}>–</span>
-                <input
-                  type="number"
-                  placeholder="Max"
-                  value={maxPrice}
-                  onChange={(e) => setMaxPrice(e.target.value)}
-                  className="w-full border px-3 py-2 text-sm"
-                  style={{ borderColor: colors.lightGrey }}
-                  min="0"
-                />
-              </div>
-              <div className="flex gap-2 mt-2 flex-wrap">
-                {[[0, 50], [50, 100], [100, 200], [200, 500]].map(([min, max]) => (
-                  <button
-                    key={`${min}-${max}`}
-                    type="button"
-                    onClick={() => { setMinPrice(String(min)); setMaxPrice(String(max)); }}
-                    className="px-2 py-1 text-xs border hover:bg-gray-100"
-                    style={{ borderColor: colors.lightGrey, color: colors.gray600 }}
-                  >
-                    ${min}–${max}
-                  </button>
-                ))}
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: colors.gray500 }}>
+                  Price Range
+                </p>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={minPrice}
+                    onChange={(e) => setMinPrice(e.target.value)}
+                    className="w-full border px-3 py-2 text-sm rounded"
+                    style={{ borderColor: colors.lightGrey }}
+                    min="0"
+                  />
+                  <span style={{ color: colors.gray500 }}>–</span>
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(e.target.value)}
+                    className="w-full border px-3 py-2 text-sm rounded"
+                    style={{ borderColor: colors.lightGrey }}
+                    min="0"
+                  />
+                </div>
               </div>
             </div>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            {[{ value: '', label: 'All' }, ...PRODUCT_CATEGORIES.map((c) => ({ value: c.id, label: c.name }))].map((c) => (
+              <button
+                key={c.value}
+                type="button"
+                onClick={() => handleCategoryChange(c.value)}
+                className="px-4 py-2 text-xs font-medium uppercase tracking-wider border transition-all rounded-lg"
+                style={{
+                  borderColor: category === c.value ? colors.black : colors.lightGrey,
+                  backgroundColor: category === c.value ? colors.black : 'white',
+                  color: category === c.value ? 'white' : colors.black,
+                }}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="aspect-square bg-gray-200 rounded-lg mb-4" />
+                <div className="h-4 bg-gray-200 rounded mb-2 w-3/4" />
+                <div className="h-4 bg-gray-200 rounded w-1/2" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {products.map((p) => (
+              <SimpleProductCard
+                key={p.id}
+                product={p}
+                onView={() => setSelectedProduct(p)}
+              />
+            ))}
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2">
-          {[{ value: '', label: 'All' }, ...PRODUCT_CATEGORIES.map((c) => ({ value: c.id, label: c.name }))].map((c) => (
+        {!isLoading && products.length === 0 && (
+          <div className="text-center py-20 border rounded-lg" style={{ borderColor: colors.lightGrey }}>
+            <p className="text-lg font-medium mb-2" style={{ color: colors.black }}>
+              No products found
+            </p>
+            <p className="text-sm mb-6" style={{ color: colors.gray500 }}>
+              Try adjusting your search or filters
+            </p>
             <button
-              key={c.value}
               type="button"
-              onClick={() => handleCategoryChange(c.value)}
-              className="px-4 py-2 text-xs font-medium uppercase tracking-wider border transition-all"
-              style={{
-                borderColor: category === c.value ? colors.black : colors.lightGrey,
-                backgroundColor: category === c.value ? colors.black : 'white',
-                color: category === c.value ? 'white' : colors.black,
-              }}
+              onClick={clearFilters}
+              className="px-6 py-3 text-sm font-medium uppercase tracking-wider rounded-lg"
+              style={{ backgroundColor: colors.black, color: 'white' }}
             >
-              {c.label}
+              Clear Filters
             </button>
-          ))}
-        </div>
+          </div>
+        )}
       </div>
 
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="animate-pulse">
-              <div className="aspect-square bg-gray-200 mb-4" />
-              <div className="h-4 bg-gray-200 rounded mb-2 w-3/4" />
-              <div className="h-4 bg-gray-200 rounded w-1/2" />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {products.map((p) => (
-            <CatalogProductCard key={p.id} product={p} onAddToCart={handleAdd} />
-          ))}
-        </div>
+      {/* Product Modal */}
+      {selectedProduct && (
+        <ProductModal
+          product={selectedProduct}
+          isOpen={!!selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+        />
       )}
-
-      {!isLoading && products.length === 0 && (
-        <div className="text-center py-20 border" style={{ borderColor: colors.lightGrey }}>
-          <p className="text-lg font-medium mb-2" style={{ color: colors.black }}>
-            No products found
-          </p>
-          <p className="text-sm mb-6" style={{ color: colors.gray500 }}>
-            Try adjusting your search or filters
-          </p>
-          <button
-            type="button"
-            onClick={clearFilters}
-            className="px-6 py-3 text-sm font-medium uppercase tracking-wider"
-            style={{ backgroundColor: colors.black, color: 'white' }}
-          >
-            Clear Filters
-          </button>
-        </div>
-      )}
-    </div>
+    </>
   );
 }

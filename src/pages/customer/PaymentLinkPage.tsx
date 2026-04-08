@@ -46,6 +46,10 @@ type PaymentLinkPageProps = {
   embed?: boolean;
 };
 
+/** Partner storefront name shown on embedded pay (override with `VITE_PAY_PARTNER_LABEL`). */
+const PAY_PARTNER_LABEL =
+  (import.meta.env.VITE_PAY_PARTNER_LABEL as string | undefined)?.trim() || 'LAMININ';
+
 export function PaymentLinkPage({ embed = false }: PaymentLinkPageProps) {
   const { paymentId } = useParams<{ paymentId: string }>();
   const navigate = useNavigate();
@@ -405,11 +409,90 @@ export function PaymentLinkPage({ embed = false }: PaymentLinkPageProps) {
           <h1 style={{ fontSize: typography.fontSize['3xl'], fontWeight: typography.fontWeight.bold, marginBottom: spacing.sm }}>
             Secure Payment
           </h1>
-          <p style={{ fontSize: typography.fontSize.base, color: colors.text.secondary }}>
-            Complete your payment securely using the code provided
-            {embed ? ' in this window.' : ''}
+          <p
+            style={{
+              fontSize: typography.fontSize.base,
+              color: colors.text.secondary,
+              maxWidth: '28rem',
+              margin: '0 auto',
+              lineHeight: typography.lineHeight.relaxed,
+            }}
+          >
+            {embed ? (
+              <>
+                <strong style={{ color: colors.text.primary }}>CoreForge</strong> encrypted checkout for
+                your order from <strong style={{ color: colors.text.primary }}>{PAY_PARTNER_LABEL}</strong>.
+                Enter the verification code you received, then pay below.
+              </>
+            ) : (
+              <>Complete your payment securely using the code provided.</>
+            )}
           </p>
         </div>
+
+        {embed ? (
+          <div
+            style={{
+              padding: spacing.lg,
+              marginBottom: spacing.lg,
+              backgroundColor: colors.background.primary,
+              borderRadius: borderRadius.lg,
+              border: `1px solid ${colors.border.main}`,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'flex-start',
+                gap: spacing.md,
+              }}
+            >
+              <img
+                src="/square.png"
+                alt=""
+                width={48}
+                height={48}
+                style={{ flexShrink: 0, objectFit: 'contain' }}
+              />
+              <div style={{ minWidth: 0, textAlign: 'left' }}>
+                <p
+                  style={{
+                    fontSize: typography.fontSize.sm,
+                    fontWeight: typography.fontWeight.semibold,
+                    color: colors.text.primary,
+                    marginBottom: spacing[2],
+                  }}
+                >
+                  Payments powered by Square
+                </p>
+                <p
+                  style={{
+                    fontSize: typography.fontSize.sm,
+                    color: colors.text.secondary,
+                    lineHeight: typography.lineHeight.relaxed,
+                    marginBottom: spacing.md,
+                  }}
+                >
+                  CoreForge processes card payments through Square. Your details are encrypted in transit.
+                </p>
+                <ul
+                  style={{
+                    margin: 0,
+                    paddingLeft: '1.15rem',
+                    fontSize: typography.fontSize.sm,
+                    color: colors.text.secondary,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  <li>Credit and debit cards (Visa, Mastercard, and more)</li>
+                  <li>Apple Pay and Google Pay where supported</li>
+                  <li>Other methods enabled for this business in Square (e.g. digital wallets)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {/* Amount Card */}
         <div

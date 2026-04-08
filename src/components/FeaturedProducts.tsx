@@ -1,26 +1,45 @@
+import { useState } from 'react';
 import { products } from '../data/products';
-import ProductCard from './ProductCard';
+import { SimpleProductCard } from './customer/SimpleProductCard';
+import { ProductModal } from './customer/ProductModal';
 import SectionHeader from './SectionHeader';
-import { spacing, layout } from '../utils/design-system';
+import { spacing } from '../utils/design-system';
+import type { Product } from '../types';
 
 export default function FeaturedProducts() {
-  return (
-    <section className={spacing.section} id="featured">
-      <div className={spacing.container}>
-        <SectionHeader
-          title="Featured Products"
-          subtitle="Science-backed formulations trusted by athletes"
-        />
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-        <div className={`${layout.grid4} ${spacing.gap}`}>
-          {products
-            .filter((product) => product.isFeatured)
-            .slice(0, 8)
-            .map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+  return (
+    <>
+      <section className={spacing.section} id="featured">
+        <div className={spacing.container}>
+          <SectionHeader
+            title="Featured Products"
+            subtitle="Science-backed formulations trusted by athletes"
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {products
+              .filter((product) => product.isFeatured)
+              .slice(0, 8)
+              .map((product) => (
+                <SimpleProductCard
+                  key={product.id}
+                  product={product}
+                  onView={() => setSelectedProduct(product as unknown as Product)}
+                />
+              ))}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      {selectedProduct && (
+        <ProductModal
+          product={selectedProduct}
+          isOpen={!!selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+        />
+      )}
+    </>
   );
 }

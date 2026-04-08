@@ -24,6 +24,28 @@ export const useCartStore = create<CartStore>()(
       addItem: (product: Product, quantity = 1) => {
         set((state) => {
           const existingItem = state.items.find((item) => item.product.id === product.id);
+          const newQuantity = existingItem ? existingItem.quantity + quantity : quantity;
+
+          // Enforce stock limits
+          if (product.stock_quantity < newQuantity) {
+            console.warn(`Cannot add ${quantity} of ${product.name}: only ${product.stock_quantity} in stock`);
+            // Cap at available stock
+            const maxAdd = Math.max(0, product.stock_quantity - (existingItem?.quantity || 0));
+            if (maxAdd === 0) return state; // No change if already at max
+
+            if (existingItem) {
+              return {
+                items: state.items.map((item) =>
+                  item.product.id === product.id
+                    ? { ...item, quantity: product.stock_quantity }
+                    : item
+                ),
+              };
+            }
+            return {
+              items: [...state.items, { product, quantity: product.stock_quantity }],
+            };
+          }
 
           if (existingItem) {
             return {

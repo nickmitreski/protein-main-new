@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, Phone, MapPin, Facebook, Instagram, Twitter, Youtube, Dumbbell, LayoutDashboard } from 'lucide-react';
+import { MessageSquare, Facebook, Instagram, Twitter, Youtube, Dumbbell, LayoutDashboard } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { colors, spacing } from '../utils/design-system';
 import { useAuthStore } from '../store/authStore';
@@ -25,7 +25,7 @@ const footerSections: { title: string; links: FooterLink[] }[] = [
     title: 'Company',
     links: [
       { label: 'About', href: '/#about' },
-      { label: 'Contact', href: '/#contact' },
+      { label: 'Contact Us', to: '/contact' },
     ]
   },
   {
@@ -146,29 +146,24 @@ export default function Footer() {
 
             {/* Contact Info */}
             <div className="space-y-3" id="contact">
-              <div className="flex items-center gap-3">
-                <Phone className="w-4 h-4" style={{ color: colors.primary }} />
-                <a href={`tel:${BUSINESS.phoneTel}`} className="text-sm hover:text-white transition-colors">
-                  {BUSINESS.phoneDisplay}
-                </a>
-              </div>
-              <div className="flex items-center gap-3">
-                <Mail className="w-4 h-4" style={{ color: colors.primary }} />
-                <a href={`mailto:${BUSINESS.email}`} className="text-sm hover:text-white transition-colors">
-                  {BUSINESS.email}
-                </a>
-              </div>
-              <div className="flex items-start gap-3">
-                <MapPin className="w-4 h-4 mt-0.5" style={{ color: colors.primary }} />
-                <span className="text-sm">
-                  {BUSINESS.addressLines.map((line) => (
-                    <span key={line}>
-                      {line}
-                      <br />
-                    </span>
-                  ))}
-                </span>
-              </div>
+              <p className="text-sm font-semibold mb-3 text-white">Get in Touch</p>
+              <Link
+                to="/contact"
+                className="flex items-center gap-3 group hover:opacity-80 transition-opacity"
+              >
+                <div
+                  className="flex items-center justify-center w-10 h-10 rounded-lg group-hover:scale-110 transition-transform"
+                  style={{ backgroundColor: colors.primary }}
+                >
+                  <MessageSquare className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white">Contact Form</p>
+                  <p className="text-xs" style={{ color: colors.gray400 }}>
+                    Send us a message
+                  </p>
+                </div>
+              </Link>
             </div>
           </div>
 

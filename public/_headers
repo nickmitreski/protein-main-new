@@ -1,0 +1,5 @@
+# Netlify (and similar): allow partner storefronts to iframe only /embed/* paths.
+# Space-separated origins after frame-ancestors; add preview URLs if you use them.
+/embed/*
+  Content-Security-Policy: frame-ancestors 'self' http://localhost:5173 http://127.0.0.1:5173 https://lamininpeplab.com.au https://laminin-peptides.vercel.app
+  Referrer-Policy: strict-origin-when-cross-origin

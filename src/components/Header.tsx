@@ -1,8 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, User, Search, Menu, X, Dumbbell, Package } from 'lucide-react';
+import { User, Menu, X, Dumbbell, Package } from 'lucide-react';
 import { useState } from 'react';
 import { colors } from '../utils/design-system';
-import { useCartStore } from '../store/cartStore';
 import { useAuthStore } from '../store/authStore';
 
 type NavLink = { label: string } & ({ to: string } | { href: string });
@@ -11,13 +10,12 @@ const navLinks: NavLink[] = [
   { to: '/shop', label: 'Shop' },
   { href: '#about', label: 'About' },
   { href: '#reviews', label: 'Reviews' },
-  { href: '#contact', label: 'Contact' },
+  { to: '/contact', label: 'Contact' },
 ];
 
 export default function Header() {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const itemCount = useCartStore((s) => s.getItemCount());
   const user = useAuthStore((s) => s.user);
 
   return (
@@ -78,33 +76,6 @@ export default function Header() {
 
           {/* Right Actions */}
           <div className="flex items-center gap-4">
-            {/* Search Button */}
-            <button
-              type="button"
-              className="hidden md:flex items-center justify-center w-10 h-10 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-              aria-label="Search"
-            >
-              <Search className="w-5 h-5" style={{ color: colors.gray600 }} />
-            </button>
-
-            {/* Cart Button */}
-            <button
-              type="button"
-              onClick={() => navigate('/cart')}
-              className="relative flex items-center justify-center w-10 h-10 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-              aria-label={`Shopping cart with ${itemCount} items`}
-            >
-              <ShoppingCart className="w-5 h-5" style={{ color: colors.gray600 }} />
-              {itemCount > 0 && (
-                <span
-                  className="absolute -top-1 -right-1 flex items-center justify-center w-5 h-5 text-xs font-bold text-white rounded-full"
-                  style={{ backgroundColor: colors.primary }}
-                >
-                  {itemCount > 9 ? '9+' : itemCount}
-                </span>
-              )}
-            </button>
-
             <Link
               to="/orders"
               className="hidden md:inline-flex items-center text-sm font-semibold transition-colors hover:opacity-80"
@@ -172,16 +143,6 @@ export default function Header() {
                 )
               )}
               <div className="border-t pt-4 mt-2" style={{ borderColor: colors.gray200 }}>
-                <button
-                  type="button"
-                  className="w-full flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-                  aria-label="Search"
-                >
-                  <Search className="w-5 h-5" style={{ color: colors.gray600 }} />
-                  <span className="text-base font-semibold" style={{ color: colors.gray700 }}>
-                    Search
-                  </span>
-                </button>
                 <Link
                   to="/orders"
                   onClick={() => setMobileMenuOpen(false)}

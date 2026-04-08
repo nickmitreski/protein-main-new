@@ -1,0 +1,31 @@
+# Laminin nested repo artifacts (deployed separately)
+public/laminin-site/.git
+public/laminin-site/node_modules
+public/laminin-site/dist
+public/laminin-site/.env
+public/laminin-site/.env.local
+public/laminin-site/.env.*.local
+
+# Standard excludes
+node_modules
+.git
+*.log
+
+# Development artifacts
+.vscode
+.idea
+.DS_Store
+.cursor
+.claude
+
+# Docs and reference files (don't need in production)
+docs/**/*.md
+*.md
+!README.md
+
+# Other reference files
+other/**
+
+# Build caches
+.vercel
+dist-ssr

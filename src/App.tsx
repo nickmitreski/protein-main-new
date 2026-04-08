@@ -11,6 +11,7 @@ import { CheckoutPage } from './pages/customer/CheckoutPage';
 import { OrderConfirmationPage } from './pages/customer/OrderConfirmationPage';
 import { TrackOrderPage } from './pages/customer/TrackOrderPage';
 import { PaymentLinkPage } from './pages/customer/PaymentLinkPage';
+import { ContactPage } from './pages/customer/ContactPage';
 import {
   CookiePolicyPage,
   PrivacyPolicyPage,
@@ -77,6 +78,7 @@ function App() {
           <Route path="order-confirmation" element={<OrderConfirmationPage />} />
           <Route path="orders" element={<TrackOrderPage />} />
           <Route path="pay/:paymentId" element={<PaymentLinkPage />} />
+          <Route path="contact" element={<ContactPage />} />
           <Route path="privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="terms-of-service" element={<TermsOfServicePage />} />
           <Route path="shipping-returns" element={<ShippingReturnsPage />} />
