@@ -39,11 +39,17 @@ export function useEmbedMessaging(embed: boolean) {
             origin
           );
           parentOriginRef.current = origin;
+        } else {
+          console.error(
+            '[CoreForge embed] VITE_EMBED_PARENT_ORIGINS is not set on this build. The iframe loads but cannot handshake with the parent (resize/success). Set it in Vercel to your Laminin origin(s), e.g. https://lamininpeplab.com.au — include www if you use it.'
+          );
         }
         return;
       }
       if (allowed.includes(origin)) {
         parentOriginRef.current = origin;
+      } else if (import.meta.env.DEV) {
+        console.warn('[CoreForge embed] INIT from unexpected origin (add to VITE_EMBED_PARENT_ORIGINS):', origin);
       }
     }
 
