@@ -25,15 +25,29 @@ export const isSupabaseConfigured = Boolean(
 /**
  * Untyped client: add generated `Database` from Supabase CLI later for full type-safe `.from()` rows.
  * Hooks cast responses to app types (`Product`, `Order`, etc.).
+ *
+ * Single instance via globalThis avoids "Multiple GoTrueClient instances" if the module is evaluated
+ * more than once (e.g. dev HMR). Explicit storageKey avoids clashing with other apps on the same origin.
  */
-export const supabase: SupabaseClient = createClient(
-  isSupabaseConfigured ? supabaseUrl! : placeholderUrl,
-  isSupabaseConfigured ? supabaseAnonKey! : placeholderAnonKey,
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-    },
-  }
-);
+const globalSupabase = globalThis as typeof globalThis & {
+  __COREFORGE_SUPABASE_CLIENT__?: SupabaseClient;
+};
+
+function createBrowserClient(): SupabaseClient {
+  return createClient(
+    isSupabaseConfigured ? supabaseUrl! : placeholderUrl,
+    isSupabaseConfigured ? supabaseAnonKey! : placeholderAnonKey,
+    {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storageKey: 'coreforge-supabase-auth-v1',
+      },
+    }
+  );
+}
+
+export const supabase: SupabaseClient =
+  globalSupabase.__COREFORGE_SUPABASE_CLIENT__ ??
+  (globalSupabase.__COREFORGE_SUPABASE_CLIENT__ = createBrowserClient());
